@@ -69,14 +69,14 @@ resource "aws_security_group" "ec2_security_group" {
     security_groups =[]
   },
   {
-    cidr_blocks = [ "88.160.197.172/32","2.11.196.142/32","185.39.170.186/32" ]
+    cidr_blocks = [ "","","" ]
     description = "ssh access"
     from_port = 22
     protocol = "tcp"
     to_port = 22
     self = false
     prefix_list_ids =[]
-    ipv6_cidr_blocks = ["2a01:e0a:831:6b30:c08:36f5:bd23:e353/128"]
+    ipv6_cidr_blocks = [""]
     security_groups =[]
   }
   ]
