@@ -1,0 +1,150 @@
+- name: configuring web server
+
+  hosts: aws_ec2
+
+  tasks:
+
+   - name: Install httpd package
+     package:
+      name: "httpd"
+      state: present
+     register: x
+   - name: "Refresh Inventory"
+     meta: refresh_inventory
+   - name: document root dir
+     file:
+      state: directory
+
+      dest: "/var/www/html"
+
+     register: y
+
+     tags: webgit
+   - name: service httpd
+     service:
+       name: httpd
+       state: started
+       enabled: yes
+     register: x
+   - name: Add port to firewalld
+     firewalld:
+      port: "{{ item }}"
+      permanent: yes
+      state: enabled
+     when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+     loop:
+       - 8080/tcp
+- name: configuring web server
+
+  hosts: aws_ec2
+  tasks:
+    - name: Install package
+      become: true
+      shell: dnf -y install nodejs
+- name: postgresql
+  hosts: aws_ec2
+  become: true
+  tasks:
+    - name: Install packages
+      ansible.builtin.yum:
+        name:
+          - postgresql
+          - postgresql-server
+          - postgresql-contrib
+          - postgresql-libs
+        state: present
+
+    - name: Check if PostgreSQL is initialized
+      ansible.builtin.stat:
+        path: "/var/lib/pgsql/data/pg_hba.conf"
+      register: postgres_data
+
+    - name: Initialize PostgreSQL
+      ansible.builtin.shell: "postgresql-setup initdb"
+      when: not postgres_data.stat.exists
+
+    - name: Start and enable service
+      ansible.builtin.service:
+        name: postgresql
+        state: started
+        enabled: true
+- name: docker
+  become: yes
+  hosts: aws_ec2
+  tasks:
+    - name: Install required pkgs
+      yum:
+        name:
+          - yum-utils
+          - device-mapper-persistent-data
+          - lvm2
+        state: latest
+    - name: Docker repo
+      yum_repository:
+        name: docker
+        description: repo for docker
+        baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+        gpgcheck: no
+    - name: Installing docker
+      command:
+        cmd: yum install docker-ce --nobest -y
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+    - name: install python3.6
+      package:
+        name: python36
+        state: present
+    - name: conf pip for docker
+      pip:
+        name: docker-py
+
+
+- hosts: aws_ec2
+  become: yes
+  tasks:
+    - name: Pull Nginx image
+      docker_image:
+        name: nginx
+        source: pull
+
+    - name: Create Nginx container
+      docker_container:
+        name: nginx
+        image: nginx
+        ports:
+          - "8080:8080"
+        state: started
+
+    - name: Pull PostgreSQL image
+      docker_image:
+        name: postgres
+        state: present
+        source: pull
+
+    - name: Create PostgreSQL container
+      docker_container:
+        name: postgres
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: mysecretpassword
+        ports:
+          - "5433:5433"
+        state: started
+
+    - name: Pull Node.js image
+      docker_image:
+        name: node
+        state: present
+        source: pull
+
+    - name: Create Node.js container
+      docker_container:
+        name: node
+        image: node
+        command: bash -c "npm install && npm start"
+        ports:
+          - "3000:3000"
+        state: started

@@ -1,0 +1,13 @@
+plugin: amazon.aws.aws_ec2
+regions:
+  - "eu-west-3"
+aws_access_key: ""
+aws_secret_key: ""
+keyed_groups:
+  - key: tags
+    prefix: tags
+include_filters:
+  - tag:Name: 
+    - ec2_web
+compose:
+   ansible_host: public_ip_address

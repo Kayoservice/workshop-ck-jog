@@ -1,0 +1,6 @@
+ec2_jog_ck2*
+venv/
+.terraform*
+cours.code-workspace
+terraform.*
+secret*
